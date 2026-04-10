@@ -5,34 +5,44 @@ class Program
 {
     static void Main()
     {
-        Raylib.InitWindow(800, 600, "Background Infinite");
+        int screenWidth = 800;
+        int screenHeight = 600;
 
-
-        Texture2D back = Raylib.LoadTexture("back.jpg");
-
-        float bgX = 0;
+        Raylib.InitWindow(screenWidth, screenHeight, "Test Level");
 
         while (!Raylib.WindowShouldClose())
         {
-        
-            bgX -= 0.01f; // vitesse 
-
-            if (bgX <= -back.Width)
-            {
-                bgX = 0;
-            }
-
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.Black);
 
-            // Dessine le fond 2 fois pour faire la boucle
-            Raylib.DrawTexture(back, (int)bgX, 0, Color.White);
-            Raylib.DrawTexture(back, (int)bgX + back.Width, 0, Color.White);
+            // fond blanc
+            Raylib.ClearBackground(Color.White);
+
+            // couleurs
+            Color rose = new Color(255, 105, 180, 255);
+            Color roseFonce = new Color(200, 50, 130, 255);
+
+            // SOL
+            Raylib.DrawRectangle(0, 500, 800, 100, rose);
+            Raylib.DrawRectangleLines(0, 500, 800, 100, roseFonce);
+
+            // PLAFOND
+            Raylib.DrawRectangle(0, 0, 800, 20, rose);
+            Raylib.DrawRectangleLines(0, 0, 800, 20, roseFonce);
+
+            // MUR GAUCHE
+            Raylib.DrawRectangle(0, 0, 20, 600, rose);
+            Raylib.DrawRectangleLines(0, 0, 20, 600, roseFonce);
+
+            // MUR DROIT
+            Raylib.DrawRectangle(780, 0, 20, 600, rose);
+            Raylib.DrawRectangleLines(780, 0, 20, 600, roseFonce);
+
+            // TEXTE TEST
+            Raylib.DrawText("ZONE DE TEST", 300, 250, 20, Color.Black);
 
             Raylib.EndDrawing();
         }
 
-        Raylib.UnloadTexture(back);
         Raylib.CloseWindow();
     }
 }
