@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "2kA7KViI6Sc=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\thoma\\Desktop\\Ynov\\Groupie Tracker\\tkt\\low-cortisol.io\\low-cortisol.io.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\thoma\\.nuget\\packages\\raylib-cs\\7.0.2\\raylib-cs.7.0.2.nupkg.sha512"
+  ],
+  "logs": []
+}
