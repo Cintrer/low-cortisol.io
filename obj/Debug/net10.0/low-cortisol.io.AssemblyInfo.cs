@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("low-cortisol.io")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1a9f38edc9f82d2a61bfd9d933236bf409b55789")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1a7e5c3ae9083456968433a7bafb9bb78cd840c5")]
 [assembly: System.Reflection.AssemblyProductAttribute("low-cortisol.io")]
 [assembly: System.Reflection.AssemblyTitleAttribute("low-cortisol.io")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
