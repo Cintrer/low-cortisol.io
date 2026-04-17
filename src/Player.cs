@@ -1,297 +1,123 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
+using Raylib_cs;
+using System.Numerics;
 
-namespace AnimationGame
+namespace LevelDevilBase;
+
+public class Player
 {
-    /// <summary>
-    /// Classe du joueur avec animations et physique
-    /// </summary>
-    public class Player
+    private Vector2 _position;
+    private Vector2 _velocity;
+    private readonly int _width = 48;
+    private readonly int _height = 64;
+
+    private readonly float _walkSpeed = 240f;
+    private readonly float _runSpeed = 430f;
+    private readonly float _jumpForce = -560f;
+    private readonly float _gravity = 1500f;
+
+    private bool _isGrounded;
+    private bool _facingRight = true;
+
+    private readonly Animation _runAnimation;
+    private readonly Animation _idleAnimation;
+    private readonly Animation _jumpAnimation;
+
+    public Player(Vector2 startPosition)
     {
-        // Positions et dimensions
-        public Vector2 Position { get; set; }
-        public float Width { get; set; } = 80f;
-        public float Height { get; set; } = 100f;
+        _position = startPosition;
 
-        // Physique
-        public Vector2 Velocity { get; set; }
-        public float Gravity { get; set; } = 980f;
-        public float MaxFallSpeed { get; set; } = 500f;
-        public float MoveSpeed { get; set; } = 250f;
-        public float JumpForce { get; set; } = -500f;
+        _idleAnimation = new Animation("assets/player/idle", 8f);
+        _runAnimation = new Animation("assets/player/run", 14f);
+        _jumpAnimation = new Animation("assets/player/jump", 8f);
+    }
 
-        // État
-        public bool IsOnGround { get; set; } = true;
-        public bool IsDead { get; set; } = false;
-        public string CurrentState { get; private set; } = "idle";
+    public Rectangle Bounds => new(_position.X, _position.Y, _width, _height);
 
-        // Animations
-        private Animation _idleAnim;
-        private Animation _runAnim;
-        private Animation _jumpAnim;
-        private Animation _deathAnim;
-        private Animation _currentAnim;
+    public void Update(float dt, List<Rectangle> platforms)
+    {
+        float moveInput = 0f;
+        if (Raylib.IsKeyDown(KeyboardKey.A) || Raylib.IsKeyDown(KeyboardKey.Left)) moveInput -= 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.D) || Raylib.IsKeyDown(KeyboardKey.Right)) moveInput += 1f;
 
-        private int _direction = 1; // 1 = droite, -1 = gauche
-        private float _groundLevel = 600f;
-        private Random _random = new Random();
+        bool wantsRun = Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift);
+        float currentSpeed = wantsRun ? _runSpeed : _walkSpeed;
 
-        public Player(Vector2 startPosition)
+        _velocity.X = moveInput * currentSpeed;
+
+        if (moveInput > 0) _facingRight = true;
+        if (moveInput < 0) _facingRight = false;
+
+        if (_isGrounded && (Raylib.IsKeyPressed(KeyboardKey.Space) || Raylib.IsKeyPressed(KeyboardKey.Up)))
         {
-            Position = startPosition;
-            Velocity = Vector2.Zero;
+            _velocity.Y = _jumpForce;
+            _isGrounded = false;
         }
 
-        /// <summary>
-        /// Charge les animations depuis des fichiers PNG
-        /// </summary>
-        public void LoadAnimations(GraphicsDevice graphicsDevice)
+        _velocity.Y += _gravity * dt;
+
+        // Horizontal move
+        _position.X += _velocity.X * dt;
+
+        // Vertical move
+        _position.Y += _velocity.Y * dt;
+        _isGrounded = false;
+
+        Rectangle future = Bounds;
+
+        foreach (var platform in platforms)
         {
-            try
+            if (Raylib.CheckCollisionRecs(future, platform))
             {
-                _idleAnim = LoadAnimationFromFolder(graphicsDevice, "Content/Sprites/Idle", 0.08f, true);
-                _runAnim = LoadAnimationFromFolder(graphicsDevice, "Content/Sprites/Run", 0.06f, true);
-                _jumpAnim = LoadAnimationFromFolder(graphicsDevice, "Content/Sprites/Jump", 0.1f, false);
-                _deathAnim = LoadAnimationFromFolder(graphicsDevice, "Content/Sprites/Death", 0.08f, false);
+                Rectangle previous = new(_position.X, _position.Y - _velocity.Y * dt, _width, _height);
 
-                _currentAnim = _idleAnim ?? new Animation(new List<Texture2D>());
-
-                Console.WriteLine("✅ Animations chargées avec succès!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Charge une animation depuis un dossier
-        /// </summary>
-        private Animation LoadAnimationFromFolder(GraphicsDevice gd, string folderPath, float frameDuration, bool isLooping)
-        {
-            var frames = new List<Texture2D>();
-
-            if (!Directory.Exists(folderPath))
-            {
-                Console.WriteLine($"⚠️ Dossier manquant: {folderPath}");
-                return null;
-            }
-
-            var files = Directory.GetFiles(folderPath, "*.png");
-            Array.Sort(files);
-
-            foreach (var file in files)
-            {
-                try
+                if (previous.Y + previous.Height <= platform.Y + 5)
                 {
-                    using (var stream = File.OpenRead(file))
-                    {
-                        frames.Add(Texture2D.FromStream(gd, stream));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erreur fichier {file}: {ex.Message}");
+                    _position.Y = platform.Y - _height;
+                    _velocity.Y = 0;
+                    _isGrounded = true;
+                    future = Bounds;
                 }
             }
-
-            if (frames.Count > 0)
-            {
-                Console.WriteLine($"✅ {folderPath}: {frames.Count} frames");
-                return new Animation(frames, frameDuration, isLooping);
-            }
-
-            Console.WriteLine($"❌ Aucune image PNG dans {folderPath}");
-            return null;
         }
 
-        /// <summary>
-        /// Met à jour le joueur
-        /// </summary>
-        public void Update(GameTime gameTime, Rectangle worldBounds)
+        GetCurrentAnimation().Update(dt, MathF.Abs(_velocity.X) > 0.1f && _isGrounded);
+    }
+
+    public void Draw()
+    {
+        Texture2D? texture = GetCurrentAnimation().GetCurrentFrame();
+
+        if (texture.HasValue)
         {
-            if (IsDead)
+            Texture2D tex = texture.Value;
+
+            Rectangle source = new(0, 0, tex.Width, tex.Height);
+            if (!_facingRight)
             {
-                if (_currentAnim?.HasFinished == true)
-                {
-                    // L'animation de mort est terminée
-                }
-                return;
+                source = new(tex.Width, 0, -tex.Width, tex.Height);
             }
 
-            HandleInput();
-            UpdatePhysics(gameTime, worldBounds);
-            UpdateAnimationState();
-
-            if (_currentAnim != null)
-                _currentAnim.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+            Rectangle dest = new(_position.X, _position.Y, _width, _height);
+            Raylib.DrawTexturePro(tex, source, dest, Vector2.Zero, 0f, Color.White);
         }
-
-        /// <summary>
-        /// Gère l'entrée clavier
-        /// </summary>
-        private void HandleInput()
+        else
         {
-            var keys = Keyboard.GetState();
-            Velocity.X = 0;
-
-            // Mouvement gauche
-            if (keys.IsKeyDown(Keys.Left) || keys.IsKeyDown(Keys.Q))
-            {
-                Velocity.X = -MoveSpeed;
-                _direction = -1;
-            }
-            // Mouvement droite
-            else if (keys.IsKeyDown(Keys.Right) || keys.IsKeyDown(Keys.D))
-            {
-                Velocity.X = MoveSpeed;
-                _direction = 1;
-            }
-
-            // Saut
-            if ((keys.IsKeyDown(Keys.Space) || keys.IsKeyDown(Keys.Up) || keys.IsKeyDown(Keys.Z)) && IsOnGround)
-            {
-                Velocity.Y = JumpForce;
-                IsOnGround = false;
-            }
-
-            // Touches spéciales
-            if (keys.IsKeyDown(Keys.M))
-                Die();
-
-            if (keys.IsKeyDown(Keys.R))
-                Reset(new Vector2(640, 500));
+            Raylib.DrawRectangleRec(Bounds, new Color(70, 160, 255, 255));
+            Raylib.DrawRectangle((int)_position.X + 10, (int)_position.Y + 12, 8, 8, Color.White);
         }
+    }
 
-        /// <summary>
-        /// Met à jour la physique
-        /// </summary>
-        private void UpdatePhysics(GameTime gameTime, Rectangle worldBounds)
-        {
-            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+    public void Unload()
+    {
+        _runAnimation.Unload();
+        _idleAnimation.Unload();
+        _jumpAnimation.Unload();
+    }
 
-            // Applique la gravité
-            if (!IsOnGround)
-            {
-                Velocity.Y += Gravity * dt;
-                if (Velocity.Y > MaxFallSpeed)
-                    Velocity.Y = MaxFallSpeed;
-            }
-
-            // Mise à jour position
-            Position += Velocity * dt;
-
-            // Collision avec le sol
-            IsOnGround = false;
-            if (Position.Y + Height >= _groundLevel)
-            {
-                Position.Y = _groundLevel - Height;
-                Velocity.Y = 0;
-                IsOnGround = true;
-            }
-
-            // Limites gauche/droite
-            if (Position.X < 0)
-                Position.X = 0;
-            if (Position.X + Width > worldBounds.Width)
-                Position.X = worldBounds.Width - Width;
-
-            // Mort si trop bas
-            if (Position.Y > worldBounds.Height + 100)
-                Die();
-        }
-
-        /// <summary>
-        /// Met à jour l'état d'animation
-        /// </summary>
-        private void UpdateAnimationState()
-        {
-            string newState = "idle";
-
-            if (IsDead)
-            {
-                newState = "death";
-            }
-            else if (!IsOnGround)
-            {
-                newState = "jump";
-            }
-            else if (Velocity.X != 0)
-            {
-                newState = "run";
-            }
-
-            if (newState != CurrentState)
-            {
-                CurrentState = newState;
-                SwitchAnimation(newState);
-            }
-        }
-
-        /// <summary>
-        /// Change l'animation
-        /// </summary>
-        private void SwitchAnimation(string state)
-        {
-            var newAnim = state switch
-            {
-                "idle" => _idleAnim,
-                "run" => _runAnim,
-                "jump" => _jumpAnim,
-                "death" => _deathAnim,
-                _ => _idleAnim
-            };
-
-            if (newAnim != null && newAnim != _currentAnim)
-            {
-                newAnim.Reset();
-                _currentAnim = newAnim;
-            }
-        }
-
-        /// <summary>
-        /// Tue le joueur
-        /// </summary>
-        public void Die()
-        {
-            if (IsDead) return;
-            IsDead = true;
-            CurrentState = "death";
-            SwitchAnimation("death");
-            Console.WriteLine("💀 Mort!");
-        }
-
-        /// <summary>
-        /// Réinitialise le joueur
-        /// </summary>
-        public void Reset(Vector2 startPos)
-        {
-            Position = startPos;
-            Velocity = Vector2.Zero;
-            IsDead = false;
-            IsOnGround = true;
-            CurrentState = "idle";
-            SwitchAnimation("idle");
-            Console.WriteLine("🔄 Réinitialisation");
-        }
-
-        /// <summary>
-        /// Dessine le joueur
-        /// </summary>
-        public void Draw(SpriteBatch sb)
-        {
-            if (_currentAnim == null) return;
-            var texture = _currentAnim.GetCurrentFrame();
-            if (texture == null) return;
-
-            var destRect = new Rectangle((int)Position.X, (int)Position.Y, (int)Width, (int)Height);
-            var effect = _direction == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
-
-            sb.Draw(texture, destRect, null, Color.White, 0f, Vector2.Zero, effect, 0f);
-        }
+    private Animation GetCurrentAnimation()
+    {
+        if (!_isGrounded) return _jumpAnimation;
+        if (MathF.Abs(_velocity.X) > 0.1f) return _runAnimation;
+        return _idleAnimation;
     }
 }

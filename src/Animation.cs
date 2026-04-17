@@ -1,79 +1,58 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework.Graphics;
+using Raylib_cs;
 
-namespace AnimationGame
+namespace LevelDevilBase;
+
+public class Animation
 {
-    /// <summary>
-    /// Gère les animations basées sur des images PNG
-    /// </summary>
-    public class Animation
+    private readonly List<Texture2D> _frames = new();
+    private readonly float _fps;
+    private float _timer;
+    private int _currentFrame;
+
+    public Animation(string folderPath, float fps)
     {
-        public List<Texture2D> Frames { get; private set; }
-        public float FrameDuration { get; private set; }
-        public bool IsLooping { get; private set; }
-        
-        private int _currentFrame = 0;
-        private float _elapsedTime = 0;
-        private bool _isPlaying = true;
-        public bool HasFinished { get; private set; } = false;
+        _fps = fps;
 
-        public Animation(List<Texture2D> frames, float frameDuration = 0.1f, bool isLooping = true)
+        if (!Directory.Exists(folderPath))
+            return;
+
+        string[] files = Directory.GetFiles(folderPath)
+            .Where(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f)
+            .ToArray();
+
+        foreach (var file in files)
         {
-            Frames = frames ?? new List<Texture2D>();
-            FrameDuration = frameDuration;
-            IsLooping = isLooping;
+            _frames.Add(Raylib.LoadTexture(file));
         }
+    }
 
-        public Texture2D GetCurrentFrame()
+    public void Update(float dt, bool animate)
+    {
+        if (_frames.Count <= 1 || !animate)
+            return;
+
+        _timer += dt;
+        float frameDuration = 1f / _fps;
+
+        while (_timer >= frameDuration)
         {
-            if (Frames.Count == 0) return null;
-            return Frames[_currentFrame];
+            _timer -= frameDuration;
+            _currentFrame = (_currentFrame + 1) % _frames.Count;
         }
+    }
 
-        public void Update(float deltaTime)
+    public Texture2D? GetCurrentFrame()
+    {
+        if (_frames.Count == 0) return null;
+        return _frames[_currentFrame];
+    }
+
+    public void Unload()
+    {
+        foreach (var frame in _frames)
         {
-            if (!_isPlaying || Frames.Count == 0) return;
-
-            _elapsedTime += deltaTime;
-
-            while (_elapsedTime >= FrameDuration)
-            {
-                _elapsedTime -= FrameDuration;
-                _currentFrame++;
-
-                if (_currentFrame >= Frames.Count)
-                {
-                    if (IsLooping)
-                    {
-                        _currentFrame = 0;
-                    }
-                    else
-                    {
-                        _currentFrame = Frames.Count - 1;
-                        _isPlaying = false;
-                        HasFinished = true;
-                    }
-                }
-            }
-        }
-
-        public void Reset()
-        {
-            _currentFrame = 0;
-            _elapsedTime = 0;
-            _isPlaying = true;
-            HasFinished = false;
-        }
-
-        public void Stop()
-        {
-            _isPlaying = false;
-        }
-
-        public void Play()
-        {
-            _isPlaying = true;
+            Raylib.UnloadTexture(frame);
         }
     }
 }
