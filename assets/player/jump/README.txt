@@ -1,1 +1,0 @@
-Dépose ici tes sprites PNG pour l'animation jump.
