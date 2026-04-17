@@ -1,0 +1,1 @@
+Tu peux regrouper ici les animations du perso ou autres éléments liés aux déplacements.

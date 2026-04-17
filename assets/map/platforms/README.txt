@@ -1,0 +1,1 @@
+Sprites / images de plateformes.
