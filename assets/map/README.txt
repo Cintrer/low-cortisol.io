@@ -1,1 +1,0 @@
-Mets ici tout ce qui concerne la map : fond, plateformes, décor, portes, etc.

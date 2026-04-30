@@ -1,1 +1,1 @@
-Mets ici tes sprites idle PNG (idle_01.png, idle_02.png, ...)
+Mets ici tes sprites idle.

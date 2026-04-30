@@ -1,1 +1,1 @@
-Mets ici tes sprites walk PNG (walk_01.png, walk_02.png, ...)
+Mets ici tes sprites walk.

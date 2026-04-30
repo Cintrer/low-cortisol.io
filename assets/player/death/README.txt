@@ -1,1 +1,1 @@
-Mets ici tes sprites death PNG (death_01.png, death_02.png, ...)
+Mets ici tes sprites death.
